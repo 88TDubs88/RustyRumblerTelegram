@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RustyRumblerTelegram</title>
+  <style>
+    :root{
+      --bg:#070707; --panel:#121212; --panel2:#1b1b1b; --text:#f3f3f3; --muted:#b7b7b7;
+      --accent:#ff9b1f; --accent2:#ffd089; --line:#2c2c2c; --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top, rgba(255,155,31,.09), transparent 30%),linear-gradient(180deg,#090909 0%,#050505 100%);color:var(--text);min-height:100vh}
+    .wrap{width:min(980px,92vw);margin:0 auto;padding:28px 0 56px}
+    .hero{text-align:center;margin-bottom:22px}
+    .title{display:flex;align-items:center;justify-content:center;gap:12px;font-size:clamp(32px,4vw,48px);font-weight:800;letter-spacing:.5px;margin:0 0 8px}
+    .title-bolt{font-size:.8em;color:var(--accent);filter:drop-shadow(0 0 8px rgba(255,155,31,.35))}
+    .subtitle{margin:0;color:var(--muted);font-size:17px}
+    .status-row{display:flex;justify-content:center;margin-top:16px}
+    .status-badge{background:#151515;border:1px solid var(--line);border-radius:999px;padding:10px 14px;font-size:14px;color:var(--accent2);box-shadow:var(--shadow)}
+    .host-card{margin:24px auto 22px;width:min(320px,72vw);background:linear-gradient(180deg,#171717,#0e0e0e);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:18px 16px 16px;text-align:center}
+    .host-label{color:var(--muted);font-size:13px;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:10px}
+    .rusty-host{width:min(240px,56vw);max-width:100%;display:block;margin:0 auto;user-select:none;-webkit-user-drag:none;filter:drop-shadow(0 0 18px rgba(255,155,31,.20))}
+    .host-tip{color:#8e8e8e;font-size:12px;margin-top:10px;min-height:16px}
+    .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;align-items:start}
+    @media (max-width: 840px){.grid{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg,var(--panel),#0f0f0f);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+    .card h2{margin:0 0 14px;font-size:26px}
+    .rules-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .stat{background:var(--panel2);border:1px solid #2a2a2a;border-radius:14px;padding:12px}
+    .stat-label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+    .stat-value{font-size:22px;font-weight:700;color:#fff}
+    .players-list{list-style:none;padding:0;margin:0;display:grid;gap:9px}
+    .players-list li{background:var(--panel2);border:1px solid #282828;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:16px}
+    .player-badge{color:var(--accent2);font-size:12px;text-transform:uppercase;letter-spacing:1px}
+    .empty{color:#8f8f8f;font-style:italic}
+    .feed{height:320px;overflow:auto;background:#050505;border:1px solid #252525;border-radius:16px;padding:14px;text-align:left}
+    .feed-line{padding:8px 10px;margin:0 0 8px;background:#101010;border:1px solid #202020;border-radius:10px;line-height:1.45}
+    .podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:18px}
+    @media (max-width: 640px){.podium{grid-template-columns:1fr}}
+    .podium-card{border-radius:16px;padding:16px;border:1px solid #2a2a2a;background:#111;text-align:center;min-height:118px}
+    .podium-place{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+    .gold{box-shadow: inset 0 0 0 1px rgba(255,196,61,.15)}
+    .silver{box-shadow: inset 0 0 0 1px rgba(201,201,201,.12)}
+    .bronze{box-shadow: inset 0 0 0 1px rgba(205,127,50,.15)}
+    .winner-name{font-size:24px;font-weight:800;margin-bottom:6px}
+    .winner-prize{color:var(--accent2);font-size:14px}
+    .hidden{display:none !important}
+    .modal{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:18px}
+    .modal-card{width:min(420px,92vw);background:linear-gradient(180deg,#1e1e1e,#111);border:1px solid #2e2e2e;border-radius:20px;padding:22px;box-shadow:var(--shadow)}
+    .modal-card h3{margin:0 0 14px;font-size:28px}
+    .modal-card p{color:var(--muted);margin:0 0 16px}
+    .code-input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid #343434;background:#0f0f0f;color:#fff;font-size:16px;outline:none}
+    .modal-actions{display:flex;gap:10px;margin-top:14px}
+    .btn{border:none;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer}
+    .btn-main{background:linear-gradient(180deg,#ffad3c,#ff9414);color:#1d1100}
+    .btn-secondary{background:#252525;color:#fff;border:1px solid #363636}
+    .error{min-height:20px;color:#ff8c8c;margin-top:10px;font-size:14px}
+    .admin-panel{margin-top:20px;background:linear-gradient(180deg,#171717,#101010);border:1px solid #2d2d2d;border-radius:20px;box-shadow:var(--shadow);padding:18px}
+    .admin-panel h2{margin:0 0 14px}
+    .admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    @media (max-width: 700px){.admin-grid{grid-template-columns:1fr}}
+    .field{background:var(--panel2);border:1px solid #2d2d2d;border-radius:14px;padding:12px}
+    .field label{display:block;margin-bottom:8px;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:1px}
+    .field input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid #383838;background:#101010;color:#fff;font-size:15px}
+    .admin-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .admin-note{color:#9a9a9a;font-size:13px;margin-top:12px}
+    .session-note{margin-top:10px;color:#8f8f8f;font-size:12px}
+  </style>
+  <script src="https://telegram.org/js/telegram-web-app.js?60"></script>
+</head>
+<body>
+  <div id="adminModal" class="modal hidden">
+    <div class="modal-card">
+      <h3>Rusty Control Access</h3>
+      <p>Type the admin code to unlock Rusty’s control panel.</p>
+      <input id="adminCodeInput" class="code-input" type="password" placeholder="Enter admin code" />
+      <div class="modal-actions">
+        <button id="adminUnlockBtn" class="btn btn-main">Unlock</button>
+        <button id="adminCancelBtn" class="btn btn-secondary">Cancel</button>
+      </div>
+      <div id="adminError" class="error"></div>
+      <div class="session-note">Tip: type <strong>rusty</strong> anywhere on the page to open this.</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="hero">
+      <h1 class="title"><span class="title-bolt">⚙</span> RustyRumblerTelegram</h1>
+      <p class="subtitle">One survivor. Three prizes. The wasteland decides.</p>
+      <p style="margin:10px 0 0;color:#78c8ff;font-size:14px;">Telegram Mini App Edition</p>
+      <div class="status-row"><div id="statusBadge" class="status-badge">Status: Waiting for a new rumble</div></div>
+      <div class="host-card">
+        <div class="host-label">Rusty Arena Host</div>
+        <img id="rustyHost" src="Rusty.png" alt="Rusty" class="rusty-host" />
+        <div id="hostTip" class="host-tip">Type “rusty” on your keyboard to open the control seal.</div>
+      </div>
+    </section>
+
+
+    <section class="card" style="margin-bottom:18px;">
+      <h2>Telegram Arena</h2>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
+        <div class="stat">
+          <div class="stat-label">Launch Mode</div>
+          <div class="stat-value" style="font-size:18px;">Mini App</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Best Use</div>
+          <div class="stat-value" style="font-size:18px;">Live Group Events</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Current Scope</div>
+          <div class="stat-value" style="font-size:18px;">One Shared Arena</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;color:#a9a9a9;font-size:13px;">
+        This Telegram build is separate from the main web build so your original product stays intact.
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Arena Rules</h2>
+        <div class="rules-grid">
+          <div class="stat"><div class="stat-label">Entry Amount</div><div id="entryDisplay" class="stat-value">10 Rusty</div></div>
+          <div class="stat"><div class="stat-label">Minimum Players</div><div id="minPlayersDisplay" class="stat-value">3</div></div>
+          <div class="stat"><div class="stat-label">House Cut</div><div id="houseCutDisplay" class="stat-value">10%</div></div>
+          <div class="stat"><div class="stat-label">Prize Split</div><div id="splitDisplay" class="stat-value">50 / 30 / 20</div></div>
+          <div class="stat"><div class="stat-label">Entrants</div><div id="entrantCountDisplay" class="stat-value">0</div></div>
+          <div class="stat"><div class="stat-label">Prize Pool</div><div id="prizePoolDisplay" class="stat-value">0 Rusty</div></div>
+        </div>
+        <div id="adminPanel" class="admin-panel hidden">
+          <h2>Rusty Control Panel</h2>
+          <div class="admin-grid">
+            <div class="field"><label for="entryAmount">Entry Amount (Rusty)</label><input id="entryAmount" type="number" min="1" value="10" /></div>
+            <div class="field"><label for="minPlayers">Minimum Players</label><input id="minPlayers" type="number" min="3" value="3" /></div>
+            <div class="field"><label for="houseCut">House Cut %</label><input id="houseCut" type="number" min="0" max="100" value="10" /></div>
+            <div class="field"><label for="prizeSplit">Prize Split (Gold/Silver/Bronze)</label><input id="prizeSplit" type="text" value="50,30,20" /></div>
+            <div class="field"><label for="playerName">Add Player Name</label><input id="playerName" type="text" placeholder="Enter player name" /></div>
+            <div class="field"><label for="removePlayerName">Remove Player Name</label><input id="removePlayerName" type="text" placeholder="Enter player name" /></div>
+          </div>
+          <div class="admin-row">
+            <button id="createGameBtn" class="btn btn-main" type="button">Create Game</button>
+            <button id="addPlayerBtn" class="btn btn-secondary" type="button">Add Player</button>
+            <button id="removePlayerBtn" class="btn btn-secondary" type="button">Remove Player</button>
+            <button id="startGameBtn" class="btn btn-main" type="button">Start Game</button>
+            <button id="resetGameBtn" class="btn btn-secondary" type="button">Reset</button>
+          </div>
+          <div class="admin-note">Public users only see the game board. Rusty’s control deck stays hidden until unlocked.</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Scavengers</h2>
+        <ul id="playerList" class="players-list"><li class="empty">No players entered yet.</li></ul>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:18px;">
+      <h2>Rusty Narration</h2>
+      <div id="log" class="feed"></div>
+    </section>
+
+    <section class="card" style="margin-top:18px;">
+      <h2>Winners Podium</h2>
+      <div class="podium">
+        <div class="podium-card bronze"><div class="podium-place">Bronze</div><div id="bronzeWinner" class="winner-name">—</div><div id="bronzePrize" class="winner-prize">0 Rusty</div></div>
+        <div class="podium-card gold"><div class="podium-place">Gold</div><div id="goldWinner" class="winner-name">—</div><div id="goldPrize" class="winner-prize">0 Rusty</div></div>
+        <div class="podium-card silver"><div class="podium-place">Silver</div><div id="silverWinner" class="winner-name">—</div><div id="silverPrize" class="winner-prize">0 Rusty</div></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const ui = {
+      adminModal: document.getElementById("adminModal"),
+      adminPanel: document.getElementById("adminPanel"),
+      adminCodeInput: document.getElementById("adminCodeInput"),
+      adminUnlockBtn: document.getElementById("adminUnlockBtn"),
+      adminCancelBtn: document.getElementById("adminCancelBtn"),
+      adminError: document.getElementById("adminError"),
+      hostTip: document.getElementById("hostTip"),
+      entryDisplay: document.getElementById("entryDisplay"),
+      minPlayersDisplay: document.getElementById("minPlayersDisplay"),
+      houseCutDisplay: document.getElementById("houseCutDisplay"),
+      splitDisplay: document.getElementById("splitDisplay"),
+      entrantCountDisplay: document.getElementById("entrantCountDisplay"),
+      prizePoolDisplay: document.getElementById("prizePoolDisplay"),
+      statusBadge: document.getElementById("statusBadge"),
+      playerList: document.getElementById("playerList"),
+      log: document.getElementById("log"),
+      goldWinner: document.getElementById("goldWinner"),
+      silverWinner: document.getElementById("silverWinner"),
+      bronzeWinner: document.getElementById("bronzeWinner"),
+      goldPrize: document.getElementById("goldPrize"),
+      silverPrize: document.getElementById("silverPrize"),
+      bronzePrize: document.getElementById("bronzePrize"),
+      entryAmountInput: document.getElementById("entryAmount"),
+      minPlayersInput: document.getElementById("minPlayers"),
+      houseCutInput: document.getElementById("houseCut"),
+      prizeSplitInput: document.getElementById("prizeSplit"),
+      playerNameInput: document.getElementById("playerName"),
+      removePlayerNameInput: document.getElementById("removePlayerName"),
+      createGameBtn: document.getElementById("createGameBtn"),
+      addPlayerBtn: document.getElementById("addPlayerBtn"),
+      removePlayerBtn: document.getElementById("removePlayerBtn"),
+      startGameBtn: document.getElementById("startGameBtn"),
+      resetGameBtn: document.getElementById("resetGameBtn")
+    };
+
+    let currentGame = null;
+    let secretBuffer = "";
+    let lastRenderedEventCount = -1;
+
+    function getStoredCode(){ return sessionStorage.getItem("rustyAdminCode") || ""; }
+    function setStoredCode(code){ sessionStorage.setItem("rustyAdminCode", code); sessionStorage.setItem("rustyAdminUnlocked","yes"); }
+    function clearStoredCode(){ sessionStorage.removeItem("rustyAdminCode"); sessionStorage.removeItem("rustyAdminUnlocked"); }
+    function isAdminUnlocked(){ return sessionStorage.getItem("rustyAdminUnlocked")==="yes" && !!getStoredCode(); }
+
+    function showAdminPanel(){ ui.adminPanel.classList.remove("hidden"); ui.hostTip.textContent = "Rusty grants access to the control deck."; }
+    function hideAdminPanel(){ ui.adminPanel.classList.add("hidden"); ui.hostTip.textContent = "Type “rusty” on your keyboard to open the control seal."; }
+    function openAdminModal(){ ui.adminModal.classList.remove("hidden"); ui.adminCodeInput.value = ""; ui.adminError.textContent = ""; ui.adminCodeInput.focus(); }
+    function closeAdminModal(){ ui.adminModal.classList.add("hidden"); }
+
+    function escapeHtml(str){
+      return str.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+
+    function setStatus(text){ ui.statusBadge.textContent = "Status: " + text; }
+
+    function addFeedLine(text){
+      const line = document.createElement("div");
+      line.className = "feed-line";
+      line.textContent = text;
+      ui.log.appendChild(line);
+      ui.log.scrollTop = ui.log.scrollHeight;
+    }
+
+    function renderFeed(feed){
+      const lines = Array.isArray(feed) ? feed : [];
+      if (lines.length === lastRenderedEventCount) return;
+      ui.log.innerHTML = "";
+      lines.forEach(item => addFeedLine(item.text || ""));
+      lastRenderedEventCount = lines.length;
+    }
+
+    function renderPlayers(players){
+      const list = Array.isArray(players) ? players : [];
+      if (!list.length) {
+        ui.playerList.innerHTML = '<li class="empty">No players entered yet.</li>';
+        return;
+      }
+      ui.playerList.innerHTML = "";
+      list.forEach((name,index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span>${index + 1}. ${escapeHtml(name)}</span><span class="player-badge">Scavenger</span>`;
+        ui.playerList.appendChild(li);
+      });
+    }
+
+    function renderWinners(winners, prizes){
+      ui.goldWinner.textContent = winners?.gold?.name || "—";
+      ui.silverWinner.textContent = winners?.silver?.name || "—";
+      ui.bronzeWinner.textContent = winners?.bronze?.name || "—";
+      ui.goldPrize.textContent = prizes?.gold ? `${prizes.gold} Rusty` : "0 Rusty";
+      ui.silverPrize.textContent = prizes?.silver ? `${prizes.silver} Rusty` : "0 Rusty";
+      ui.bronzePrize.textContent = prizes?.bronze ? `${prizes.bronze} Rusty` : "0 Rusty";
+    }
+
+    function renderGame(game){
+      currentGame = game;
+      ui.entryDisplay.textContent = `${game.entryAmount} Rusty`;
+      ui.minPlayersDisplay.textContent = String(game.minPlayers);
+      ui.houseCutDisplay.textContent = `${game.houseCut}%`;
+      ui.splitDisplay.textContent = game.split.join(" / ");
+      ui.entrantCountDisplay.textContent = String(game.players.length);
+      ui.prizePoolDisplay.textContent = `${game.prizePool} Rusty`;
+      if (game.status === "live") setStatus("Rumble live");
+      else if (game.status === "complete") setStatus("Rumble complete");
+      else if (game.gameCreated) setStatus("Rumble ready");
+      else setStatus("Waiting for a new rumble");
+      renderPlayers(game.players);
+      renderFeed(game.visibleFeed);
+      renderWinners(game.winners, game.prizes);
+      ui.entryAmountInput.value = game.entryAmount;
+      ui.minPlayersInput.value = game.minPlayers;
+      ui.houseCutInput.value = game.houseCut;
+      ui.prizeSplitInput.value = game.split.join(",");
+    }
+
+    async function fetchGame(){
+      try {
+        const res = await fetch("/.netlify/functions/get-game", { cache: "no-store" });
+        const data = await res.json();
+        if (res.ok && data?.game) renderGame(data.game);
+      } catch (err) {
+        console.error("Failed to fetch game", err);
+      }
+    }
+
+    async function adminAction(action, payload = {}){
+      const adminCode = getStoredCode();
+      if (!adminCode) { openAdminModal(); return; }
+      try {
+        const res = await fetch("/.netlify/functions/admin-action", {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({ code: adminCode, action, payload })
+        });
+        const data = await res.json();
+        if (res.status === 401) {
+          clearStoredCode();
+          hideAdminPanel();
+          ui.adminError.textContent = "Admin session expired. Unlock again.";
+          openAdminModal();
+          return;
+        }
+        if (!res.ok) { alert(data?.error || "Action failed."); return; }
+        if (data?.game) renderGame(data.game);
+        else await fetchGame();
+      } catch (err) {
+        console.error(err);
+        alert("Admin action failed.");
+      }
+    }
+
+    async function unlockAdmin(){
+      const code = ui.adminCodeInput.value.trim();
+      if (!code) { ui.adminError.textContent = "Enter the admin code."; return; }
+      ui.adminError.textContent = "Checking...";
+      try {
+        const res = await fetch("/.netlify/functions/verify-admin", {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({ code })
+        });
+        if (res.status === 200) {
+          setStoredCode(code);
+          closeAdminModal();
+          showAdminPanel();
+          ui.adminError.textContent = "";
+        } else {
+          ui.adminError.textContent = "Wrong code.";
+        }
+      } catch (err) {
+        ui.adminError.textContent = "Unlock check failed.";
+      }
+    }
+
+    function readAdminConfig(){
+      const entry = Number(ui.entryAmountInput.value);
+      const minPlayers = Number(ui.minPlayersInput.value);
+      const houseCut = Number(ui.houseCutInput.value);
+      const split = ui.prizeSplitInput.value.split(",").map(x => Number(x.trim()));
+      if (!entry || entry <= 0) throw new Error("Enter a valid entry amount.");
+      if (!minPlayers || minPlayers < 3) throw new Error("Minimum players must be at least 3.");
+      if (isNaN(houseCut) || houseCut < 0 || houseCut > 100) throw new Error("House cut must be between 0 and 100.");
+      if (split.length !== 3 || split.some(n => isNaN(n)) || split[0] + split[1] + split[2] !== 100) {
+        throw new Error("Prize split must be three numbers totaling 100. Example: 50,30,20");
+      }
+      return { entryAmount: entry, minPlayers, houseCut, split };
+    }
+
+    ui.createGameBtn.addEventListener("click", async () => {
+      try { await adminAction("createGame", readAdminConfig()); }
+      catch (err) { alert(err.message || "Could not create game."); }
+    });
+    ui.addPlayerBtn.addEventListener("click", async () => {
+      const name = ui.playerNameInput.value.trim();
+      if (!name) return alert("Enter a player name.");
+      await adminAction("addPlayer", { name });
+      ui.playerNameInput.value = "";
+    });
+    ui.removePlayerBtn.addEventListener("click", async () => {
+      const name = ui.removePlayerNameInput.value.trim();
+      if (!name) return alert("Enter a player name to remove.");
+      await adminAction("removePlayer", { name });
+      ui.removePlayerNameInput.value = "";
+    });
+    ui.startGameBtn.addEventListener("click", async () => { await adminAction("startGame"); });
+    ui.resetGameBtn.addEventListener("click", async () => { await adminAction("resetGame"); });
+    ui.adminUnlockBtn.addEventListener("click", unlockAdmin);
+    ui.adminCancelBtn.addEventListener("click", closeAdminModal);
+    ui.adminCodeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") unlockAdmin(); });
+
+    document.addEventListener("keydown", (e) => {
+      const key = e.key.toLowerCase();
+      if (key.length === 1) {
+        secretBuffer += key;
+        if (secretBuffer.length > 10) secretBuffer = secretBuffer.slice(-10);
+      }
+      if (secretBuffer.includes("rusty")) {
+        openAdminModal();
+        secretBuffer = "";
+      }
+    });
+
+    if (isAdminUnlocked()) showAdminPanel();
+    else hideAdminPanel();
+
+
+    const tg = window.Telegram?.WebApp;
+    const isTelegramMiniApp = !!tg;
+
+    if (tg) {
+      try {
+        tg.ready();
+        tg.expand();
+        if (tg.setHeaderColor) tg.setHeaderColor("#121212");
+        if (tg.setBackgroundColor) tg.setBackgroundColor("#070707");
+        if (tg.MainButton) tg.MainButton.hide();
+        if (tg.BackButton) tg.BackButton.hide();
+      } catch (err) {
+        console.error("Telegram init failed", err);
+      }
+    }
+
+    fetchGame();
+    setInterval(fetchGame, 2000);
+  </script>
+</body>
+</html>
